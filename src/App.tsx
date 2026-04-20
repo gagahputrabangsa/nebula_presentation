@@ -46,6 +46,12 @@ export default function App() {
   const [showNotes, setShowNotes] = useState(false);
   const [direction, setDirection] = useState(0); // -1 for left, 1 for right
 
+  const providerLogos = {
+  anthropic: "/logos/anthropic.svg",
+  google: "/logos/google.svg",
+  openai: "/logos/openai.svg",
+  meta: "/logos/meta.svg",
+};
   const slides: Slide[] = [
     {
       id: 0,
@@ -262,10 +268,10 @@ export default function App() {
           </div>
           <div className="grid grid-cols-4 gap-6 w-full max-w-5xl">
             {[
-              { name: "CLAUDE 3.5 Sonnet", prov: "anthropic", speed: "High" },
-              { name: "GEMINI 1.5 Pro", prov: "google", speed: "Instant" },
-              { name: "GPT-4o Omnimodel", prov: "openai", speed: "Balanced" },
-              { name: "LLAMA 3.1 405B", prov: "meta", speed: "Open" }
+              { name: "CLAUDE 4.6 Sonnet", prov: "anthropic", speed: "High" },
+              { name: "GEMINI 3.1 Pro", prov: "google", speed: "Instant" },
+              { name: "GPT-5.2 Pro", prov: "openai", speed: "Balanced" },
+              { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" }
             ].map((model, i) => (
               <div key={i} className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-nebula-text font-black group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -368,7 +374,12 @@ export default function App() {
         <div className="flex flex-col h-full p-24 justify-center gap-12">
           <div className="max-w-2xl">
             <div className="text-indigo-600 font-black text-xs uppercase tracking-widest mb-4">Enterprise Control</div>
-            <h2 className="text-7xl font-extrabold leading-[0.9] tracking-tighter">Deployment <br /><span className="gradient-text-saas">Is Governance.</span></h2>
+            <h2 className="text-7xl font-extrabold leading-[0.9] tracking-tighter">
+  Deployment
+  <span className="block mt-4 gradient-text-saas">
+    Is Governance.
+  </span>
+</h2>
           </div>
           
           <div className="grid grid-cols-3 gap-6">
