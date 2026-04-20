@@ -4,6 +4,8 @@
  */
 
 import PptxGenJS from 'pptxgenjs';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -132,6 +134,70 @@ export default function App() {
     },
     {
       id: 1,
+      title: "About Nebula Data",
+      script: "Nebula Data, headquartered in Singapore with regional offices in Guangzhou, Shanghai, and Hong Kong, is a leader in cloud network integration and intelligent computing. We partner with Chinese enterprises to expand globally through integrated AI infrastructure, low-latency networks, and unified cloud management—empowering businesses to embrace AI and scale internationally.",
+      content: (
+        <div className="flex flex-col h-full p-12 justify-start gap-8 overflow-y-auto">
+          <div className="space-y-4 pt-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="px-4 py-1.5 bg-indigo-50 text-nebula-accent text-xs font-bold rounded-full tracking-wide w-fit"
+            >
+              COMPANY PROFILE
+            </motion.div>
+<motion.h2
+  initial={{ y: 20, opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  className="text-5xl font-extrabold leading-[1.1] tracking-tight text-nebula-text max-w-3xl"
+>
+  Empowering Global
+  <span className="block mt-2 gradient-text-saas italic">
+    Enterprise AI
+  </span>
+</motion.h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="saas-card p-6 flex flex-col gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-nebula-accent flex items-center justify-center">
+                <Globe size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-nebula-text">Global Presence</h3>
+              <p className="text-xs text-nebula-muted leading-relaxed">Headquartered in Singapore with strategic offices in Guangzhou, Shanghai, and Hong Kong, serving enterprises across Asia-Pacific.</p>
+            </div>
+
+            <div className="saas-card p-6 flex flex-col gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-nebula-accent flex items-center justify-center">
+                <Zap size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-nebula-text">Integrated Solution</h3>
+              <p className="text-xs text-nebula-muted leading-relaxed">Unified AIDC infrastructure, global low-latency networks, and comprehensive cloud management in one platform.</p>
+            </div>
+
+            <div className="saas-card p-6 flex flex-col gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-nebula-accent flex items-center justify-center">
+                <Layers size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-nebula-text">Cloud Integration</h3>
+              <p className="text-xs text-nebula-muted leading-relaxed">Seamless cloud network integration enabling enterprises to embrace AI technologies with confidence.</p>
+            </div>
+
+            <div className="saas-card p-6 flex flex-col gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-nebula-accent flex items-center justify-center">
+                <Workflow size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-nebula-text">Global Expansion</h3>
+              <p className="text-xs text-nebula-muted leading-relaxed">Empower your enterprise to scale internationally with intelligent computing infrastructure built for growth.</p>
+            </div>
+          </div>
+
+          <div className="w-16 h-1.5 bg-nebula-accent rounded-full mt-4" />
+        </div>
+      )
+    },
+    {
+      id: 2,
       title: "The Market Challenge",
       script: "The velocity of AI advancement is unprecedented. Organizations aren't just looking for tools; they're looking for an AI strategy that won't become obsolete in 6 months. Flexibility and speed are no longer options—they are the standard.",
       content: (
@@ -157,7 +223,7 @@ export default function App() {
       )
     },
     {
-      id: 2,
+      id: 3,
       title: "Core Questions",
       script: "We see three persistent roadblocks in enterprise AI. First: Unified Access. How do you integrate without lock-in? Second: Practical Value. How do you turn a chat-box into a business agent? Third: Governance. How do you deploy securely?",
       content: (
@@ -189,7 +255,7 @@ export default function App() {
       )
     },
     {
-      id: 3,
+      id: 4,
       title: "The Approach",
       script: "Our architecture is optimized for speed and governance. We've built a three-layered stack that addresses the entire AI lifecycle. From the One-Key Access layer to the Agent Solution layer, and finally to the Enterprise Infrastructure layer, we ensure every part of your AI stack is performant and secure.",
       content: (
@@ -223,7 +289,7 @@ export default function App() {
       )
     },
     {
-      id: 4,
+      id: 5,
       title: "Market Entry",
       script: "Starting with Nebula is frictionless. Many clients begin with our Unified Model Access to replace multiple subscriptions with one clear enterprise account. As internal technical debt grows, they move toward Bespoke Agents and Scalable Infrastructure nodes.",
       content: (
@@ -257,7 +323,7 @@ export default function App() {
       )
     },
     {
-  id: 5,
+  id: 6,
   title: "140+ Models",
   script: "Our model hub is the core of the gateway. We maintain high-availability connections to every major provider. This means you can hot-swap models based on cost, latency, or quality without rewriting a single line of your application glue code.",
   content: (
@@ -306,7 +372,7 @@ export default function App() {
   )
 },
     {
-      id: 6,
+      id: 7,
       title: "Impact",
       script: "We bridge the gap between engineering efficiency and business agility. For developers, we're the clean API layer that handles auth and failover. For the C-suite, we're the platform that enables low-friction experimentation and rapid time-to-market.",
       content: (
@@ -347,7 +413,7 @@ export default function App() {
       )
     },
     {
-      id: 7,
+      id: 8,
       title: "Operations",
       script: "Embedding AI into the workflow is where the real value lies. Our operations suite covers common business tasks out of the box, while allowing for bespoke engineering where needed. We handle the heavy lifting of document parsing and workflow orchestration so you can focus on the business logic.",
       content: (
@@ -385,7 +451,7 @@ export default function App() {
       )
     },
     {
-      id: 8,
+      id: 9,
       title: "Deployment",
       script: "Control is a non-negotiable for enterprise and public-sector clients. Nebula offers full-stack deployment flexibility. Whether you need a fully managed cloud solution, a private VPC tunnel, or a high-performance hybrid node integrated with our global AIDC network, we deliver the governance you need.",
       content: (
@@ -421,7 +487,7 @@ export default function App() {
       )
     },
     {
-      id: 9,
+      id: 10,
       title: "Sectors",
       script: "Our foundation is industry-agnostic, supporting diverse business outcomes. In Public Sector and BUMN, we focus on secure knowledge graphs and automated citizen service review. In Private Enterprise, we drive sales enablement and high-latency customer support transformations.",
       content: (
@@ -468,7 +534,7 @@ export default function App() {
       )
     },
     {
-      id: 10,
+      id: 11,
       title: "Start Path",
       script: "We've engineered a low-friction entry path. We don't ask for a long-term commitment on day one. We start with a single priority use-case. Within 4 to 6 weeks, we run a focused pilot to validate performance, security, and ROI. Only after a successful pilot do we scale to a full enterprise integration.",
       content: (
@@ -498,7 +564,7 @@ export default function App() {
       )
     },
     {
-      id: 11,
+      id: 12,
       title: "DEMO Showcase",
       script: "It's time to move from slides to source code. The following demo will showcase how our gateway handles a real-world multi-model workflow. You'll see unified authentication, intent-based model selection, and the speed of our integrated global network.",
       content: (
@@ -517,7 +583,10 @@ export default function App() {
                 <p className="text-2xl font-light text-white/40 leading-relaxed max-w-2xl px-12">
                   Showcasing sub-second model hotswapping and autonomous workflow orchestration.
                 </p>
-                <button className="bg-indigo-600 text-white px-16 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-indigo-600 transition-all duration-300 shadow-[0_0_50px_rgba(99,102,241,0.3)] hover:shadow-[0_0_70px_rgba(255,255,255,0.2)]">
+                <button 
+                  className="bg-indigo-600 text-white px-16 py-6 rounded-2xl font-black text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-indigo-600 transition-all duration-300 shadow-[0_0_50px_rgba(99,102,241,0.3)] hover:shadow-[0_0_70px_rgba(255,255,255,0.2)]"
+                  onClick={() => window.open('https://ai-nebula.com/', '_blank')}
+                >
                   Launch Showcase
                 </button>
              </div>
@@ -541,73 +610,154 @@ export default function App() {
     }
   }, [currentSlide]);
 
-  const downloadAllSlides = () => {
-    window.print();
+  const downloadAllSlides = async () => {
+    try {
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [297, 210] });
+      
+      // Create a temporary container for rendering slides
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.width = '1920px';
+      container.style.height = '1080px';
+      container.style.backgroundColor = '#ffffff';
+      document.body.appendChild(container);
+      
+      for (let i = 0; i < slides.length; i++) {
+        // Create a temporary slide wrapper
+        const slideWrapper = document.createElement('div');
+        slideWrapper.style.width = '100%';
+        slideWrapper.style.height = '100%';
+        slideWrapper.style.overflow = 'hidden';
+        container.innerHTML = '';
+        container.appendChild(slideWrapper);
+        
+        // We'll use an alternative approach - print to PDF
+        // Create a simple text-based slide content
+        const slide = slides[i];
+        const slideInfo = `
+          <div style="padding: 40px; font-family: Arial; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <h1 style="font-size: 48px; margin: 0 0 20px 0; color: #0F172A;">${slide.title}</h1>
+            ${slide.subtitle ? `<p style="font-size: 24px; margin: 0 0 30px 0; color: #64748B;">${slide.subtitle}</p>` : ''}
+            <p style="font-size: 14px; color: #64748B; line-height: 1.6;">${slide.script || ''}</p>
+            <div style="margin-top: auto; font-size: 12px; color: #94A3B8;">Page ${i + 1} of ${slides.length}</div>
+          </div>
+        `;
+        slideWrapper.innerHTML = slideInfo;
+        
+        // Wait for rendering
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Capture the slide
+        const canvas = await html2canvas(slideWrapper, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          scale: 1,
+          windowHeight: 1080,
+          windowWidth: 1920
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const width = pdf.internal.pageSize.getWidth();
+        const height = pdf.internal.pageSize.getHeight();
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+        
+        if (i < slides.length - 1) {
+          pdf.addPage();
+        }
+      }
+      
+      document.body.removeChild(container);
+      pdf.save('Nebula_Presentation.pdf');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try the browser print function (Ctrl+P) instead.');
+    }
   };
 
   const downloadPptx = async () => {
-    const pptx = new PptxGenJS();
-    pptx.layout = 'LAYOUT_WIDE';
-    
-    // Constants for styling
-    const TEXT = "0F172A";
-    const ACCENT = "6366F1"; // Modern Indigo
-    const MUTED = "64748B";
-    const SLATE_BG = "F8FAFC";
-
-    slides.forEach((slide, sIdx) => {
-      const pSlide = pptx.addSlide();
+    try {
+      const pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_WIDE';
       
-      // 1. Branding (Top-left on every slide)
-      pSlide.addImage({ path: "nebula_logo.png", x: 0.5, y: 0.3, w: 1.2, h: 0.3 });
-
-      // 2. Headings (SaaS Style)
-      if (slide.id !== 0 && slide.id !== 11) {
-        pSlide.addText(slide.title.toUpperCase(), { 
-          x: 0.5, y: 1.0, w: 12, fontSize: 12, color: ACCENT, bold: true, fontFace: "Arial", charSpacing: 1
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.width = '1920px';
+      container.style.height = '1080px';
+      document.body.appendChild(container);
+      
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        const slideWrapper = document.createElement('div');
+        slideWrapper.style.width = '100%';
+        slideWrapper.style.height = '100%';
+        slideWrapper.style.backgroundColor = '#ffffff';
+        slideWrapper.style.padding = '40px';
+        slideWrapper.style.boxSizing = 'border-box';
+        slideWrapper.style.fontFamily = 'Arial, sans-serif';
+        slideWrapper.style.display = 'flex';
+        slideWrapper.style.flexDirection = 'column';
+        slideWrapper.style.justifyContent = 'center';
+        
+        const content = `
+          <div style="width: 100%;">
+            <h1 style="font-size: 48px; margin: 0 0 20px 0; color: #0F172A; font-weight: bold;">${slide.title}</h1>
+            ${slide.subtitle ? `<p style="font-size: 24px; margin: 0 0 30px 0; color: #64748B;">${slide.subtitle}</p>` : ''}
+            <p style="font-size: 14px; color: #64748B; line-height: 1.6; max-width: 90%;">${slide.script || ''}</p>
+          </div>
+        `;
+        slideWrapper.innerHTML = content;
+        container.innerHTML = '';
+        container.appendChild(slideWrapper);
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const canvas = await html2canvas(slideWrapper, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          scale: 1,
+          windowHeight: 1080,
+          windowWidth: 1920
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pSlide = pptx.addSlide();
+        pSlide.background = { fill: 'ffffff' };
+        pSlide.addImage({
+          data: imgData,
+          x: 0,
+          y: 0,
+          w: 10,
+          h: 5.625
+        });
+        
+        // Add speaker notes
+        if (slide.script) {
+          pSlide.addNotes(slide.script);
+        }
+        
+        // Add page number
+        pSlide.addText(`${i + 1} / ${slides.length}`, {
+          x: 9,
+          y: 5.3,
+          w: 1,
+          h: 0.3,
+          fontSize: 9,
+          color: '64748B'
         });
       }
-
-      // 3. Footer
-      pSlide.addText("Nebula Data - All-in-One API Gateway", { 
-        x: 0.5, y: 7.1, w: 5, fontSize: 8, color: MUTED, bold: true, fontFace: "Arial" 
-      });
-      pSlide.addText(`${sIdx + 1} / ${slides.length}`, { 
-        x: 12, y: 7.1, w: 1, fontSize: 8, color: MUTED, align: "right", fontFace: "Arial" 
-      });
-
-      // 4. Content Mapping
-      switch(slide.id) {
-        case 0: // Cover
-          pSlide.addShape(pptx.ShapeType.rect, { x: 8, y: 0, w: 5.33, h: 7.5, fill: { color: SLATE_BG } });
-          
-          pSlide.addText("All-in-One API", { x: 0.5, y: 2.0, w: 7, fontSize: 60, color: TEXT, bold: true, fontFace: "Arial" });
-          pSlide.addText("Gateway", { x: 0.5, y: 2.8, w: 7, fontSize: 60, color: TEXT, bold: true, fontFace: "Arial" });
-          pSlide.addText("untuk LLM", { x: 0.5, y: 3.6, w: 7, fontSize: 60, color: "2563EB", bold: true, italic: true, fontFace: "Arial" });
-          
-          pSlide.addText("Better prices, better uptime, no subscription.", { 
-            x: 0.5, y: 5.0, w: 6, fontSize: 20, color: MUTED, fontFace: "Arial" 
-          });
-          break;
-
-        case 11: // Demo Page
-          pSlide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 7.5, fill: { color: TEXT } });
-          pSlide.addText("Initiate", { x: 0, y: 2.5, w: 13.33, align: 'center', fontSize: 80, color: "FFFFFF", bold: true, fontFace: "Arial" });
-          pSlide.addText("Live Gateway", { x: 0, y: 3.8, w: 13.33, align: 'center', fontSize: 80, color: ACCENT, italic: true, bold: true, fontFace: "Arial" });
-          break;
-
-        default:
-          // Standard layout for other slides
-          pSlide.addText(slide.title, { x: 0.5, y: 2.0, w: 12, fontSize: 48, color: TEXT, bold: true, fontFace: "Arial" });
-          pSlide.addShape(pptx.ShapeType.rect, { x: 0.5, y: 3.2, w: 1.5, h: 0.1, fill: { color: ACCENT } });
-          break;
-      }
       
-      // 5. Speaker Notes
-      pSlide.addNotes(slide.script);
-    });
-
-    pptx.writeFile({ fileName: `Nebula_API_Gateway_V4.pptx` });
+      document.body.removeChild(container);
+      pptx.writeFile({ fileName: `Nebula_Presentation.pptx` });
+    } catch (err) {
+      console.error('PPTX generation failed:', err);
+      alert('Failed to generate PPTX. Please try again.');
+    }
   };
 
   useEffect(() => {
