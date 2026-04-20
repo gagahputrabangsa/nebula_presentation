@@ -47,10 +47,10 @@ export default function App() {
   const [direction, setDirection] = useState(0); // -1 for left, 1 for right
 
   const providerLogos = {
-  anthropic: "/logos/anthropic.svg",
-  google: "/logos/google.svg",
+  anthropic: "/logos/claude.svg",
+  google: "/logos/gemini.svg",
   openai: "/logos/openai.svg",
-  meta: "/logos/meta.svg",
+  alibaba: "/logos/qwen.svg",
 };
   const slides: Slide[] = [
     {
@@ -257,36 +257,54 @@ export default function App() {
       )
     },
     {
-      id: 5,
-      title: "140+ Models",
-      script: "Our model hub is the core of the gateway. We maintain high-availability connections to every major provider. This means you can hot-swap models based on cost, latency, or quality without rewriting a single line of your application glue code.",
-      content: (
-        <div className="flex flex-col items-center h-full p-20 justify-center">
-          <div className="text-center mb-16 space-y-4">
-            <div className="text-indigo-600 font-black text-sm uppercase tracking-widest">The Gateway Hub</div>
-            <h2 className="text-7xl font-extrabold tracking-tighter">140+ Models. <span className="gradient-text-saas italic">One Endpoint.</span></h2>
-          </div>
-          <div className="grid grid-cols-4 gap-6 w-full max-w-5xl">
-            {[
-              { name: "CLAUDE 4.6 Sonnet", prov: "anthropic", speed: "High" },
-              { name: "GEMINI 3.1 Pro", prov: "google", speed: "Instant" },
-              { name: "GPT-5.2 Pro", prov: "openai", speed: "Balanced" },
-              { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" }
-            ].map((model, i) => (
-              <div key={i} className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-nebula-text font-black group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                  {model.name[0]}
-                </div>
-                <div className="text-center">
-                  <div className="text-xs font-bold text-nebula-text mb-1">{model.name}</div>
-                  <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">{model.prov}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+  id: 5,
+  title: "140+ Models",
+  script: "Our model hub is the core of the gateway. We maintain high-availability connections to every major provider. This means you can hot-swap models based on cost, latency, or quality without rewriting a single line of your application glue code.",
+  content: (
+    <div className="flex flex-col items-center h-full p-20 justify-center">
+      <div className="text-center mb-16 space-y-4">
+        <div className="text-indigo-600 font-black text-sm uppercase tracking-widest">
+          The Gateway Hub
         </div>
-      )
-    },
+        <h2 className="text-7xl font-extrabold tracking-tighter">
+          140+ Models.{" "}
+          <span className="gradient-text-saas italic">One Endpoint.</span>
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-4 gap-6 w-full max-w-5xl">
+        {[
+          { name: "CLAUDE 4.6 Sonnet", prov: "anthropic", speed: "High" },
+          { name: "GEMINI 3.1 Pro", prov: "google", speed: "Instant" },
+          { name: "GPT-5.2 Pro", prov: "openai", speed: "Balanced" },
+          { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" },
+        ].map((model, i) => (
+          <div
+            key={i}
+            className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center p-2 transition-all group-hover:bg-indigo-600">
+              <img
+                src={providerLogos[model.prov]}
+                alt={model.prov}
+                className="w-full h-full object-contain grayscale transition-all group-hover:grayscale-0 group-hover:invert"
+              />
+            </div>
+
+            <div className="text-center">
+              <div className="text-xs font-bold text-nebula-text mb-1">
+                {model.name}
+              </div>
+              <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">
+                {model.prov}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+},
     {
       id: 6,
       title: "Impact",
