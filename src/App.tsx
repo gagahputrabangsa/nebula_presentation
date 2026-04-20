@@ -318,10 +318,10 @@ export default function App() {
               Better prices, better uptime, <span className="text-nebula-text font-semibold underline decoration-nebula-accent/30 decoration-4">no subscription.</span>
             </p>
             <div className="flex items-center gap-4 pt-4">
-              <button className="bg-nebula-accent text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-200">
+              <button className="bg-nebula-accent text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-200" onClick={() => window.open('https://ai-nebula.com/', '_blank')}>
                 Start Now <ArrowRight size={18} />
               </button>
-              <button className="border border-slate-200 px-8 py-4 rounded-xl font-bold text-nebula-muted hover:bg-slate-50">
+              <button className="border border-slate-200 px-8 py-4 rounded-xl font-bold text-nebula-muted hover:bg-slate-50" onClick={() => window.open('mailto:gagahputrabangsa@nebula-data.com', '_blank')}>
                 Contact Us
               </button>
             </div>
@@ -588,26 +588,27 @@ export default function App() {
               { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" },
             ].map((model, i) => (
               <div
-                key={i}
-                className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all"
-              >
-                <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center p-2 transition-all group-hover:bg-indigo-600">
-                  <img
-                    src={providerLogos[model.prov]}
-                    alt={model.prov}
-                    className="w-full h-full object-contain grayscale transition-all group-hover:grayscale-0 group-hover:invert"
-                  />
-                </div>
+  key={i}
+  className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all hover:border-indigo-200 hover:shadow-xl"
+>
+  {/* Container for the logo */}
+  <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center p-2 transition-all group-hover:bg-white group-hover:shadow-md">
+    <img
+      src={providerLogos[model.prov]}
+      alt={model.prov}
+      className="w-full h-full object-contain grayscale opacity-70 transition-all group-hover:grayscale-0 group-hover:opacity-100"
+    />
+  </div>
 
-                <div className="text-center">
-                  <div className="text-xs font-bold text-nebula-text mb-1">
-                    {model.name}
-                  </div>
-                  <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">
-                    {model.prov}
-                  </div>
-                </div>
-              </div>
+  <div className="text-center">
+    <div className="text-xs font-bold text-nebula-text mb-1 transition-colors group-hover:text-indigo-600">
+      {model.name}
+    </div>
+    <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">
+      {model.prov}
+    </div>
+  </div>
+</div>
             ))}
           </div>
         </div>
