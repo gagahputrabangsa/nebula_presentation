@@ -667,7 +667,7 @@ export default function App() {
                <h2 className="text-6xl font-black">AI-Powered <br /><span className="gradient-text-saas italic">Operations</span></h2>
             </div>
             <div className="text-right">
-               <div className="text-3xl font-black text-nebula-text">92%</div>
+               <div className="text-3xl font-black text-nebula-text">Increase</div>
                <div className="text-[10px] text-nebula-muted uppercase font-bold tracking-widest">Automation Efficiency</div>
             </div>
           </div>
