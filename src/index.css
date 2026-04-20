@@ -42,38 +42,3 @@
 .saas-card {
   @apply bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300;
 }
-
-@media print {
-  @page {
-    size: 1920px 1080px;
-    margin: 0;
-  }
-  
-  body {
-    overflow: visible !important;
-    background: white !important;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
-  .slide-container {
-    height: 1080px !important;
-    width: 1920px !important;
-    page-break-after: always;
-    position: relative;
-    overflow: hidden;
-    background: white !important;
-  }
-}
-
-.print-only {
-  display: none;
-}

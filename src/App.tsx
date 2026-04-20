@@ -7,6 +7,8 @@ import PptxGenJS from 'pptxgenjs';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, 
@@ -30,7 +32,9 @@ import {
   Search,
   MessageSquare,
   Workflow,
-  Download
+  Download,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 
 // Types
@@ -43,17 +47,255 @@ interface Slide {
   content: ReactNode;
 }
 
+// --- COLOR FIX LOGIC FOR HTML2CANVAS ---
+const colorCanvas = document.createElement('canvas');
+const colorCtx = colorCanvas.getContext('2d', { willReadFrequently: true });
+
+function resolveColorToHex(colorStr: string): string {
+  if (!colorCtx) return colorStr;
+  colorCtx.clearRect(0, 0, 1, 1);
+  colorCtx.fillStyle = '#000000'; // Reset
+  colorCtx.fillStyle = colorStr;  // Browser parses oklab/color-mix natively
+  return colorCtx.fillStyle;      // Returns a safe #RRGGBB format for html2canvas
+}
+
+function extractAndReplaceColors(cssValue: string): string {
+  let result = cssValue;
+  const functionNames = ['oklab', 'oklch', 'color-mix', 'color'];
+  
+  for (const fn of functionNames) {
+    let startIndex = 0;
+    while ((startIndex = result.indexOf(fn + '(', startIndex)) !== -1) {
+      let depth = 0;
+      let endIndex = -1;
+      
+      for (let i = startIndex + fn.length; i < result.length; i++) {
+        if (result[i] === '(') depth++;
+        else if (result[i] === ')') {
+          depth--;
+          if (depth === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (endIndex !== -1) {
+        const colorString = result.slice(startIndex, endIndex + 1);
+        const standardColor = resolveColorToHex(colorString);
+        result = result.slice(0, startIndex) + standardColor + result.slice(endIndex + 1);
+        startIndex += standardColor.length;
+      } else {
+        startIndex += fn.length; 
+      }
+    }
+  }
+  return result;
+}
+// --- END COLOR FIX LOGIC ---
+
+const SLIDE_EXPORT_WIDTH = 1920;
+const SLIDE_EXPORT_HEIGHT = 1080;
+const PPTX_EXPORT_WIDTH = 13.333;
+const PPTX_EXPORT_HEIGHT = 7.5;
+
+const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+const waitForNextPaint = () =>
+  new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+const waitForImages = async (container: HTMLElement) => {
+  const images = Array.from(container.querySelectorAll('img'));
+  await Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const finish = () => resolve();
+        image.addEventListener('load', finish, { once: true });
+        image.addEventListener('error', finish, { once: true });
+      });
+    })
+  );
+};
+
+function createStyleProbe() {
+  const probe = document.createElement('div');
+  Object.assign(probe.style, {
+    position: 'fixed', left: '-10000px', top: '0', width: '0', height: '0',
+    opacity: '0', pointerEvents: 'none',
+  });
+  document.body.appendChild(probe);
+
+  return {
+    resolve(property: string, value: string) {
+      probe.style.removeProperty(property);
+      probe.style.setProperty(property, value);
+      const normalizedValue = window.getComputedStyle(probe).getPropertyValue(property).trim();
+      probe.style.removeProperty(property);
+      return normalizedValue || value;
+    },
+    dispose() {
+      probe.remove();
+    },
+  };
+}
+
+function sanitizeStyleValue(
+  property: string,
+  value: string,
+  resolveValue: (property: string, value: string) => string
+) {
+  let sanitizedValue = value.trim();
+  if (!sanitizedValue) return sanitizedValue;
+
+  if (property.startsWith('transition')) return property === 'transition-property' ? 'none' : '0s';
+  if (property.startsWith('animation')) return property === 'animation-play-state' ? 'paused' : 'none';
+  if (property === 'caret-color') return 'transparent';
+
+  if (sanitizedValue.includes('var(')) {
+    sanitizedValue = resolveValue(property, sanitizedValue).trim() || sanitizedValue;
+  }
+
+  if (sanitizedValue.includes('gradient')) {
+    sanitizedValue = sanitizedValue.replace(
+      /(linear-gradient|radial-gradient|conic-gradient)\(([^,]*?)\s+in\s+(oklab|oklch|srgb|linear-srgb)\s*,/gi,
+      (match, gradType, prefix) => {
+        const cleanPrefix = prefix.trim();
+        return cleanPrefix === '' ? `${gradType}(` : `${gradType}(${cleanPrefix}, `;
+      }
+    );
+  }
+
+  if (/(oklab|oklch|color-mix|color)\(/i.test(sanitizedValue)) {
+    sanitizedValue = extractAndReplaceColors(sanitizedValue);
+  }
+
+  return sanitizedValue;
+}
+
+function inlineSafeCaptureStyles(container: HTMLElement) {
+  const styleProbe = createStyleProbe();
+  try {
+    const elements = [container, ...Array.from(container.querySelectorAll('*'))] as Array<HTMLElement | SVGElement>;
+    for (const element of elements) {
+      const computedStyle = window.getComputedStyle(element);
+      for (const property of Array.from(computedStyle)) {
+        if (property.startsWith('--')) continue;
+        const rawValue = computedStyle.getPropertyValue(property);
+        if (!rawValue) continue;
+        const safeValue = sanitizeStyleValue(property, rawValue, styleProbe.resolve);
+        if (!safeValue) continue;
+        element.style.setProperty(property, safeValue, computedStyle.getPropertyPriority(property));
+      }
+      element.removeAttribute('class');
+    }
+  } finally {
+    styleProbe.dispose();
+  }
+}
+
+function ExportSlideSurface({ slide }: { slide: Slide }) {
+  return (
+    <div
+      className="bg-white overflow-hidden"
+      style={{ width: `${SLIDE_EXPORT_WIDTH}px`, height: `${SLIDE_EXPORT_HEIGHT}px` }}
+    >
+      {slide.content}
+    </div>
+  );
+}
+
+async function captureSlideAsImage(slide: Slide) {
+  const host = document.createElement('div');
+  Object.assign(host.style, {
+    position: 'fixed', left: '-10000px', top: '0', 
+    width: `${SLIDE_EXPORT_WIDTH}px`, height: `${SLIDE_EXPORT_HEIGHT}px`,
+    overflow: 'hidden', pointerEvents: 'none', background: '#ffffff', zIndex: '-1',
+  });
+
+  document.body.appendChild(host);
+  const root = createRoot(host);
+
+  try {
+    flushSync(() => {
+      root.render(<ExportSlideSurface slide={slide} />);
+    });
+
+    if ('fonts' in document) {
+      try { await document.fonts.ready; } catch {}
+    }
+
+    await waitForNextPaint();
+    await wait(200);
+    await waitForImages(host);
+    await wait(150);
+
+    const captureTarget = host.firstElementChild as HTMLElement | null;
+    if (!captureTarget) throw new Error(`Slide ${slide.id} did not render for export.`);
+
+    inlineSafeCaptureStyles(captureTarget);
+    await waitForNextPaint();
+
+    const canvas = await html2canvas(captureTarget, {
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      scale: 2,
+      backgroundColor: '#ffffff',
+      imageTimeout: 0,
+      width: SLIDE_EXPORT_WIDTH,
+      height: SLIDE_EXPORT_HEIGHT,
+      windowWidth: SLIDE_EXPORT_WIDTH,
+      windowHeight: SLIDE_EXPORT_HEIGHT,
+      onclone: (clonedDoc: Document) => {
+        // Destroy global stylesheets in iframe to prevent parser crashes
+        const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+        styles.forEach(style => style.remove());
+      }
+    });
+
+    return canvas.toDataURL('image/png');
+  } finally {
+    root.unmount();
+    host.remove();
+  }
+}
+
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotes, setShowNotes] = useState(false);
-  const [direction, setDirection] = useState(0); // -1 for left, 1 for right
+  const [direction, setDirection] = useState(0); 
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'pptx' | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fullscreen Logic
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const providerLogos = {
-  anthropic: "/logos/claude.svg",
-  google: "/logos/gemini.svg",
-  openai: "/logos/openai.svg",
-  alibaba: "/logos/qwen.svg",
-};
+    anthropic: "/logos/claude.svg",
+    google: "/logos/gemini.svg",
+    openai: "/logos/openai.svg",
+    alibaba: "/logos/qwen.svg",
+  };
+
   const slides: Slide[] = [
     {
       id: 0,
@@ -146,16 +388,16 @@ export default function App() {
             >
               COMPANY PROFILE
             </motion.div>
-<motion.h2
-  initial={{ y: 20, opacity: 0 }}
-  animate={{ y: 0, opacity: 1 }}
-  className="text-5xl font-extrabold leading-[1.1] tracking-tight text-nebula-text max-w-3xl"
->
-  Empowering Global
-  <span className="block mt-2 gradient-text-saas italic">
-    Enterprise AI
-  </span>
-</motion.h2>
+            <motion.h2
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-5xl font-extrabold leading-[1.1] tracking-tight text-nebula-text max-w-3xl"
+            >
+              Empowering Global
+              <span className="block mt-2 gradient-text-saas italic">
+                Enterprise AI
+              </span>
+            </motion.h2>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -323,54 +565,54 @@ export default function App() {
       )
     },
     {
-  id: 6,
-  title: "140+ Models",
-  script: "Our model hub is the core of the gateway. We maintain high-availability connections to every major provider. This means you can hot-swap models based on cost, latency, or quality without rewriting a single line of your application glue code.",
-  content: (
-    <div className="flex flex-col items-center h-full p-20 justify-center">
-      <div className="text-center mb-16 space-y-4">
-        <div className="text-indigo-600 font-black text-sm uppercase tracking-widest">
-          The Gateway Hub
-        </div>
-        <h2 className="text-7xl font-extrabold tracking-tighter">
-          140+ Models.{" "}
-          <span className="gradient-text-saas italic">One Endpoint.</span>
-        </h2>
-      </div>
-
-      <div className="grid grid-cols-4 gap-6 w-full max-w-5xl">
-        {[
-          { name: "CLAUDE 4.6 Sonnet", prov: "anthropic", speed: "High" },
-          { name: "GEMINI 3.1 Pro", prov: "google", speed: "Instant" },
-          { name: "GPT-5.2 Pro", prov: "openai", speed: "Balanced" },
-          { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" },
-        ].map((model, i) => (
-          <div
-            key={i}
-            className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all"
-          >
-            <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center p-2 transition-all group-hover:bg-indigo-600">
-              <img
-                src={providerLogos[model.prov]}
-                alt={model.prov}
-                className="w-full h-full object-contain grayscale transition-all group-hover:grayscale-0 group-hover:invert"
-              />
+      id: 6,
+      title: "140+ Models",
+      script: "Our model hub is the core of the gateway. We maintain high-availability connections to every major provider. This means you can hot-swap models based on cost, latency, or quality without rewriting a single line of your application glue code.",
+      content: (
+        <div className="flex flex-col items-center h-full p-20 justify-center">
+          <div className="text-center mb-16 space-y-4">
+            <div className="text-indigo-600 font-black text-sm uppercase tracking-widest">
+              The Gateway Hub
             </div>
-
-            <div className="text-center">
-              <div className="text-xs font-bold text-nebula-text mb-1">
-                {model.name}
-              </div>
-              <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">
-                {model.prov}
-              </div>
-            </div>
+            <h2 className="text-7xl font-extrabold tracking-tighter">
+              140+ Models.{" "}
+              <span className="gradient-text-saas italic">One Endpoint.</span>
+            </h2>
           </div>
-        ))}
-      </div>
-    </div>
-  )
-},
+
+          <div className="grid grid-cols-4 gap-6 w-full max-w-5xl">
+            {[
+              { name: "CLAUDE 4.6 Sonnet", prov: "anthropic", speed: "High" },
+              { name: "GEMINI 3.1 Pro", prov: "google", speed: "Instant" },
+              { name: "GPT-5.2 Pro", prov: "openai", speed: "Balanced" },
+              { name: "QWEN 3.5 Plus", prov: "alibaba", speed: "Open" },
+            ].map((model, i) => (
+              <div
+                key={i}
+                className="saas-card p-10 flex flex-col items-center gap-6 group hover:-translate-y-2 transition-all"
+              >
+                <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center p-2 transition-all group-hover:bg-indigo-600">
+                  <img
+                    src={providerLogos[model.prov]}
+                    alt={model.prov}
+                    className="w-full h-full object-contain grayscale transition-all group-hover:grayscale-0 group-hover:invert"
+                  />
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs font-bold text-nebula-text mb-1">
+                    {model.name}
+                  </div>
+                  <div className="text-[10px] text-nebula-muted font-bold uppercase tracking-widest">
+                    {model.prov}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
     {
       id: 7,
       title: "Impact",
@@ -459,11 +701,11 @@ export default function App() {
           <div className="max-w-2xl">
             <div className="text-indigo-600 font-black text-xs uppercase tracking-widest mb-4">Enterprise Control</div>
             <h2 className="text-7xl font-extrabold leading-[0.9] tracking-tighter">
-  Deployment
-  <span className="block mt-4 gradient-text-saas">
-    Is Governance.
-  </span>
-</h2>
+              Deployment
+              <span className="block mt-4 gradient-text-saas">
+                Is Governance.
+              </span>
+            </h2>
           </div>
           
           <div className="grid grid-cols-3 gap-6">
@@ -610,155 +852,81 @@ export default function App() {
     }
   }, [currentSlide]);
 
-  const downloadAllSlides = async () => {
+  const captureAllSlides = useCallback(async () => {
+    const slideImages: Array<{ slide: Slide; dataUrl: string }> = [];
+
+    for (const slide of slides) {
+      const dataUrl = await captureSlideAsImage(slide);
+      slideImages.push({ slide, dataUrl });
+    }
+
+    return slideImages;
+  }, [slides]);
+
+  const downloadPdf = useCallback(async () => {
+    if (exportFormat) return;
+    setExportFormat('pdf');
+
     try {
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [297, 210] });
-      
-      // Create a temporary container for rendering slides
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.width = '1920px';
-      container.style.height = '1080px';
-      container.style.backgroundColor = '#ffffff';
-      document.body.appendChild(container);
-      
-      for (let i = 0; i < slides.length; i++) {
-        // Create a temporary slide wrapper
-        const slideWrapper = document.createElement('div');
-        slideWrapper.style.width = '100%';
-        slideWrapper.style.height = '100%';
-        slideWrapper.style.overflow = 'hidden';
-        container.innerHTML = '';
-        container.appendChild(slideWrapper);
-        
-        // We'll use an alternative approach - print to PDF
-        // Create a simple text-based slide content
-        const slide = slides[i];
-        const slideInfo = `
-          <div style="padding: 40px; font-family: Arial; height: 100%; display: flex; flex-direction: column; justify-content: center;">
-            <h1 style="font-size: 48px; margin: 0 0 20px 0; color: #0F172A;">${slide.title}</h1>
-            ${slide.subtitle ? `<p style="font-size: 24px; margin: 0 0 30px 0; color: #64748B;">${slide.subtitle}</p>` : ''}
-            <p style="font-size: 14px; color: #64748B; line-height: 1.6;">${slide.script || ''}</p>
-            <div style="margin-top: auto; font-size: 12px; color: #94A3B8;">Page ${i + 1} of ${slides.length}</div>
-          </div>
-        `;
-        slideWrapper.innerHTML = slideInfo;
-        
-        // Wait for rendering
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Capture the slide
-        const canvas = await html2canvas(slideWrapper, {
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          scale: 1,
-          windowHeight: 1080,
-          windowWidth: 1920
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const width = pdf.internal.pageSize.getWidth();
-        const height = pdf.internal.pageSize.getHeight();
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-        
-        if (i < slides.length - 1) {
-          pdf.addPage();
+      const slideImages = await captureAllSlides();
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT],
+        compress: true,
+      });
+
+      slideImages.forEach(({ dataUrl }, index) => {
+        if (index > 0) {
+          pdf.addPage([SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT], 'landscape');
         }
-      }
-      
-      document.body.removeChild(container);
+        pdf.addImage(dataUrl, 'PNG', 0, 0, SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT, undefined, 'FAST');
+      });
+
       pdf.save('Nebula_Presentation.pdf');
     } catch (err) {
       console.error('PDF generation failed:', err);
-      alert('Failed to generate PDF. Please try the browser print function (Ctrl+P) instead.');
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setExportFormat(null);
     }
-  };
+  }, [captureAllSlides, exportFormat]);
 
-  const downloadPptx = async () => {
+  const downloadPptx = useCallback(async () => {
+    if (exportFormat) return;
+    setExportFormat('pptx');
+
     try {
       const pptx = new PptxGenJS();
       pptx.layout = 'LAYOUT_WIDE';
-      
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.width = '1920px';
-      container.style.height = '1080px';
-      document.body.appendChild(container);
-      
-      for (let i = 0; i < slides.length; i++) {
-        const slide = slides[i];
-        const slideWrapper = document.createElement('div');
-        slideWrapper.style.width = '100%';
-        slideWrapper.style.height = '100%';
-        slideWrapper.style.backgroundColor = '#ffffff';
-        slideWrapper.style.padding = '40px';
-        slideWrapper.style.boxSizing = 'border-box';
-        slideWrapper.style.fontFamily = 'Arial, sans-serif';
-        slideWrapper.style.display = 'flex';
-        slideWrapper.style.flexDirection = 'column';
-        slideWrapper.style.justifyContent = 'center';
-        
-        const content = `
-          <div style="width: 100%;">
-            <h1 style="font-size: 48px; margin: 0 0 20px 0; color: #0F172A; font-weight: bold;">${slide.title}</h1>
-            ${slide.subtitle ? `<p style="font-size: 24px; margin: 0 0 30px 0; color: #64748B;">${slide.subtitle}</p>` : ''}
-            <p style="font-size: 14px; color: #64748B; line-height: 1.6; max-width: 90%;">${slide.script || ''}</p>
-          </div>
-        `;
-        slideWrapper.innerHTML = content;
-        container.innerHTML = '';
-        container.appendChild(slideWrapper);
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const canvas = await html2canvas(slideWrapper, {
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          scale: 1,
-          windowHeight: 1080,
-          windowWidth: 1920
+      pptx.author = 'Nebula';
+      pptx.company = 'Nebula Data Solutions';
+      pptx.subject = 'Nebula Presentation';
+      pptx.title = 'Nebula Presentation';
+
+      const slideImages = await captureAllSlides();
+
+      slideImages.forEach(({ slide, dataUrl }) => {
+        const pptxSlide = pptx.addSlide();
+        pptxSlide.background = { fill: 'FFFFFF' };
+        pptxSlide.addImage({
+          data: dataUrl,
+          x: 0, y: 0, w: PPTX_EXPORT_WIDTH, h: PPTX_EXPORT_HEIGHT,
         });
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        const pSlide = pptx.addSlide();
-        pSlide.background = { fill: 'ffffff' };
-        pSlide.addImage({
-          data: imgData,
-          x: 0,
-          y: 0,
-          w: 10,
-          h: 5.625
-        });
-        
-        // Add speaker notes
+
         if (slide.script) {
-          pSlide.addNotes(slide.script);
+          pptxSlide.addNotes(slide.script);
         }
-        
-        // Add page number
-        pSlide.addText(`${i + 1} / ${slides.length}`, {
-          x: 9,
-          y: 5.3,
-          w: 1,
-          h: 0.3,
-          fontSize: 9,
-          color: '64748B'
-        });
-      }
-      
-      document.body.removeChild(container);
-      pptx.writeFile({ fileName: `Nebula_Presentation.pptx` });
+      });
+
+      await pptx.writeFile({ fileName: 'Nebula_Presentation.pptx' });
     } catch (err) {
       console.error('PPTX generation failed:', err);
       alert('Failed to generate PPTX. Please try again.');
+    } finally {
+      setExportFormat(null);
     }
-  };
+  }, [captureAllSlides, exportFormat]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -773,7 +941,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-nebula-bg text-nebula-text overflow-hidden no-print">
       {/* Sidebar Navigation */}
-      <aside className="w-48 h-full bg-nebula-sidebar border-r border-slate-200 flex flex-col p-6 gap-6 z-50">
+      <aside className={`w-48 h-full bg-nebula-sidebar border-r border-slate-200 flex flex-col p-6 gap-6 z-50 transition-transform ${isFullscreen ? '-translate-x-full absolute' : 'translate-x-0 relative'}`}>
         <div className="mb-4">
            <img src="nebula_logo.png" alt="Nebula Data" className="w-full h-auto object-contain" referrerPolicy="no-referrer" />
         </div>
@@ -808,9 +976,9 @@ export default function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(circle_at_50%_-20%,rgba(37,99,235,0.03),transparent)]">
+      <main className={`flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(circle_at_50%_-20%,rgba(37,99,235,0.03),transparent)] ${isFullscreen ? 'ml-0' : ''}`}>
         {/* Header */}
-        <nav className="h-16 border-b border-slate-200 flex items-center justify-between px-12 shrink-0 z-40 bg-white/80 backdrop-blur-md">
+        <nav className={`h-16 border-b border-slate-200 flex items-center justify-between px-12 shrink-0 z-40 bg-white/80 backdrop-blur-md transition-transform ${isFullscreen ? '-translate-y-full absolute w-full' : 'translate-y-0 relative'}`}>
           <div className="text-[10px] font-black tracking-[0.3em] uppercase opacity-40">
             NEBULA // <span className="italic serif text-nebula-accent capitalize tracking-normal">Group 2026</span>
           </div>
@@ -819,23 +987,40 @@ export default function App() {
             <span className={currentSlide > 0 && currentSlide <= 5 ? "text-nebula-accent" : ""}>Strategy</span>
             <span className={currentSlide > 5 && currentSlide <= 8 ? "text-nebula-accent" : ""}>Impact</span>
             <span className={currentSlide > 8 ? "text-nebula-accent" : ""}>Timeline</span>
+            
             <div className="w-px h-4 bg-slate-200 mx-2" />
+            
+            <button 
+              onClick={toggleFullscreen}
+              className="flex items-center gap-2 hover:text-nebula-accent transition-colors group"
+              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {isFullscreen ? <Minimize size={14} className="group-hover:scale-110 transition-transform" /> : <Maximize size={14} className="group-hover:scale-110 transition-transform" />}
+              <span>{isFullscreen ? 'EXIT' : 'PRESENT'}</span>
+            </button>
+            
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+
             <button 
               onClick={downloadPptx}
-              className="flex items-center gap-2 hover:text-nebula-accent transition-colors group"
-              title="Download PowerPoint (Editable)"
+              disabled={exportFormat !== null}
+              className="flex items-center gap-2 hover:text-nebula-accent transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Download PowerPoint"
             >
               <FileText size={14} className="group-hover:scale-110 transition-transform" />
-              <span>PPTX</span>
+              <span>{exportFormat === 'pptx' ? 'PPTX...' : 'PPTX'}</span>
             </button>
+            
             <div className="w-px h-4 bg-slate-200 mx-1" />
+            
             <button 
-              onClick={downloadAllSlides}
-              className="flex items-center gap-2 hover:text-nebula-accent transition-colors group"
+              onClick={downloadPdf}
+              disabled={exportFormat !== null}
+              className="flex items-center gap-2 hover:text-nebula-accent transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               title="Download PDF"
             >
               <Download size={14} className="group-hover:scale-110 transition-transform" />
-              <span>PDF</span>
+              <span>{exportFormat === 'pdf' ? 'PDF...' : 'PDF'}</span>
             </button>
           </div>
         </nav>
@@ -858,7 +1043,7 @@ export default function App() {
         </section>
 
         {/* Footer */}
-        <footer className="h-16 border-t border-slate-200 flex items-center justify-between px-12 shrink-0 text-[10px] uppercase tracking-widest text-nebula-muted font-black z-40 bg-white/80 backdrop-blur-md">
+        <footer className={`h-16 border-t border-slate-200 flex items-center justify-between px-12 shrink-0 text-[10px] uppercase tracking-widest text-nebula-muted font-black z-40 bg-white/80 backdrop-blur-md transition-transform ${isFullscreen ? 'translate-y-full absolute bottom-0 w-full' : 'translate-y-0 relative'}`}>
           <div>&copy; 2026 // NEBULA DATA SOLUTIONS</div>
           <div className="flex items-center gap-6">
             <div className="flex h-[2px] w-48 bg-slate-200 rounded-full overflow-hidden">
@@ -903,15 +1088,6 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #2563EB; }
       `}</style>
-      
-      {/* Print View: Rendered for the browser's PDF generator */}
-      <div className="print-only">
-        {slides.map((slide) => (
-          <div key={slide.id} className="slide-container bg-white">
-            {slide.content}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
