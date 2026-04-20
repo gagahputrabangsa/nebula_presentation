@@ -793,14 +793,33 @@ export default function App() {
               { label: "02. Pilot", desc: "4-Week POC Validation" },
               { label: "03. Scale", desc: "Full Node Deployment" }
             ].map((step, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-8 group">
-                <div className="saas-card w-full p-10 text-center relative hover:bg-slate-900 hover:text-white transition-all duration-500">
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-white text-indigo-600 border border-slate-100 rounded-full text-[10px] font-black group-hover:border-slate-800 transition-colors">STEP {i+1}</div>
-                  <h3 className="text-2xl font-black mb-2">{step.label.split('.')[1]}</h3>
-                  <p className="text-xs font-bold opacity-40 uppercase tracking-widest">{step.desc}</p>
-                </div>
-                {i < 2 && <ArrowRight className="text-slate-200 hidden" />}
-              </div>
+<div key={i} className="flex-1 flex flex-col items-center gap-8 group animate-rgb-hover">
+  <div className="saas-card w-full p-10 text-center relative transition-all duration-500 
+                  hover:bg-slate-950 hover:border-slate-800 shadow-xl overflow-visible">
+    
+    {/* STEP BADGE: Negative/Invert Effect */}
+    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 
+                    bg-white text-indigo-600 border border-slate-100 rounded-full 
+                    text-[10px] font-black transition-all duration-300
+                    group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-400 group-hover:scale-110">
+      STEP {i+1}
+    </div>
+
+    {/* TITLE: The RGB Target */}
+    <h3 className="rgb-target text-2xl font-black mb-2 transition-colors duration-300 group-hover:text-white">
+      {step.label.split('.')[1]}
+    </h3>
+
+    {/* DESCRIPTION: Fixed Opacity (The "Missing" Text) */}
+    <p className="text-xs font-bold opacity-40 uppercase tracking-widest transition-all duration-300 
+                  group-hover:opacity-100 group-hover:text-slate-300">
+      {step.desc}
+    </p>
+    
+    {/* Subtle Inner Glow on hover */}
+    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ring-1 ring-inset ring-white/10" />
+  </div>
+</div>
             ))}
           </div>
         </div>

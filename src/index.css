@@ -42,3 +42,13 @@
 .saas-card {
   @apply bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300;
 }
+
+@keyframes rgb-text {
+    0% { color: #6366f1; text-shadow: 0 0 8px rgba(99, 102, 241, 0.4); }
+    33% { color: #a855f7; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
+    66% { color: #ec4899; text-shadow: 0 0 8px rgba(236, 72, 153, 0.4); }
+    100% { color: #6366f1; text-shadow: 0 0 8px rgba(99, 102, 241, 0.4); }
+  }
+  .animate-rgb-hover:hover .rgb-target {
+    animation: rgb-text 3s linear infinite;
+  }
