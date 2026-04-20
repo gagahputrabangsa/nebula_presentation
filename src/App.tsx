@@ -62,7 +62,7 @@ export default function App() {
             <h1 className="text-[120px] font-extrabold leading-[0.85] tracking-tighter text-nebula-text">
               All-in-One API <br />
               Gateway <br />
-              <span className="gradient-text-saas">untuk LLM</span>
+              <span className="gradient-text-saas">for LLM</span>
             </h1>
             <p className="text-2xl text-nebula-muted font-normal max-w-xl">
               Better prices, better uptime, <span className="text-nebula-text font-semibold underline decoration-nebula-accent/30 decoration-4">no subscription.</span>
