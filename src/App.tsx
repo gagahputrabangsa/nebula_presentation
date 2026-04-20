@@ -883,70 +883,19 @@ export default function App() {
     return slideImages;
   }, [slides]);
 
-  const downloadPdf = useCallback(async () => {
-    if (exportFormat) return;
-    setExportFormat('pdf');
+const downloadPdf = () => {
+  const link = document.createElement('a');
+  link.href = '/material/Nebula_Data.pdf';
+  link.download = 'Nebula_Data.pdf';
+  link.click();
+};
 
-    try {
-      const slideImages = await captureAllSlides();
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT],
-        compress: true,
-      });
-
-      slideImages.forEach(({ dataUrl }, index) => {
-        if (index > 0) {
-          pdf.addPage([SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT], 'landscape');
-        }
-        pdf.addImage(dataUrl, 'PNG', 0, 0, SLIDE_EXPORT_WIDTH, SLIDE_EXPORT_HEIGHT, undefined, 'FAST');
-      });
-
-      pdf.save('Nebula_Presentation.pdf');
-    } catch (err) {
-      console.error('PDF generation failed:', err);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setExportFormat(null);
-    }
-  }, [captureAllSlides, exportFormat]);
-
-  const downloadPptx = useCallback(async () => {
-    if (exportFormat) return;
-    setExportFormat('pptx');
-
-    try {
-      const pptx = new PptxGenJS();
-      pptx.layout = 'LAYOUT_WIDE';
-      pptx.author = 'Nebula';
-      pptx.company = 'Nebula Data Solutions';
-      pptx.subject = 'Nebula Presentation';
-      pptx.title = 'Nebula Presentation';
-
-      const slideImages = await captureAllSlides();
-
-      slideImages.forEach(({ slide, dataUrl }) => {
-        const pptxSlide = pptx.addSlide();
-        pptxSlide.background = { fill: 'FFFFFF' };
-        pptxSlide.addImage({
-          data: dataUrl,
-          x: 0, y: 0, w: PPTX_EXPORT_WIDTH, h: PPTX_EXPORT_HEIGHT,
-        });
-
-        if (slide.script) {
-          pptxSlide.addNotes(slide.script);
-        }
-      });
-
-      await pptx.writeFile({ fileName: 'Nebula_Presentation.pptx' });
-    } catch (err) {
-      console.error('PPTX generation failed:', err);
-      alert('Failed to generate PPTX. Please try again.');
-    } finally {
-      setExportFormat(null);
-    }
-  }, [captureAllSlides, exportFormat]);
+const downloadPptx = () => {
+  const link = document.createElement('a');
+  link.href = '/material/Nebula_data.pptx';
+  link.download = 'Nebula_Data.pptx';
+  link.click();
+};
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
