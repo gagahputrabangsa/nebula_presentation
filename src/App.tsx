@@ -82,9 +82,9 @@ export default function App() {
               <span className="text-nebula-accent">View Trending ↗</span>
             </div>
             {[
-              { name: "Gemini 3 Pro Preview", provider: "google", vol: "43.7B", lat: "3.3s", growth: "55.26%", color: "text-indigo-600" },
-              { name: "GPT - 5.2", provider: "openai", vol: "56.0B", lat: "8.8s", growth: "35.26%", color: "text-slate-900" },
-              { name: "Claude opus 4.5", provider: "anthropic", vol: "587.2B", lat: "1.3s", growth: "21.14%", color: "text-orange-600" }
+              { name: "Gemini 3.1 Pro Preview", provider: "google", vol: "43.7B", lat: "3.3s", growth: "55.26%", color: "text-indigo-600" },
+              { name: "GPT - 5.4", provider: "openai", vol: "56.0B", lat: "8.8s", growth: "35.26%", color: "text-slate-900" },
+              { name: "Claude opus 4.7", provider: "anthropic", vol: "587.2B", lat: "1.3s", growth: "21.14%", color: "text-orange-600" }
             ].map((model, i) => (
               <motion.div 
                 key={i}
